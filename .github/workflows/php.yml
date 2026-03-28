@@ -1,4 +1,4 @@
-name: PHP CI Pipeline
+name: PHP CI Pipeline with Coverage Report
  
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
  
-    # Step 2: Setup PHP with coverage enabled
+    # Step 2: Setup PHP with Xdebug (REQUIRED for coverage)
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
@@ -24,24 +24,25 @@ jobs:
  
     # Step 3: Install dependencies
     - name: Install Dependencies
-      run: |
-        composer install --no-progress --prefer-dist
+      run: composer install --no-progress --prefer-dist
  
     # Step 4: Run tests + generate reports
     - name: Run Tests with Coverage
       run: |
-        vendor/bin/phpunit \
-          --log-junit junit.xml \
-          --coverage-html coverage
+        vendor/bin/phpunit --log-junit junit.xml --coverage-html coverage
  
-    # Step 5: Upload JUnit report
+    # 🔍 Step 5: Debug (VERY IMPORTANT)
+    - name: Check generated files
+      run: ls -la
+ 
+    # Step 6: Upload JUnit report
     - name: Upload JUnit Report
       uses: actions/upload-artifact@v4
       with:
         name: junit-report
         path: junit.xml
  
-    # Step 6: Upload HTML Coverage Report (IMPORTANT)
+    # Step 7: Upload HTML Coverage Report
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
