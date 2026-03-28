@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit bootstrap="vendor/autoload.php">
     <testsuites>
-        <testsuite name="Demo Test Suite">
+        <testsuite name="Demo">
             <directory>tests</directory>
         </testsuite>
     </testsuites>
-</phpunit>
+ 
+    <coverage>
+        <include>
+            <directory>src</directory>
+        </include>
+    </coverage>
+</phpunit>>
