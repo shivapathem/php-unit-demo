@@ -11,30 +11,39 @@ jobs:
     runs-on: ubuntu-latest
  
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+    # Step 1: Checkout code
+    - name: Checkout Code
+      uses: actions/checkout@v4
  
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: 8.1
-          coverage: xdebug
+    # Step 2: Setup PHP with coverage enabled
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        coverage: xdebug
  
-      - name: Install Dependencies
-        run: composer install
+    # Step 3: Install dependencies
+    - name: Install Dependencies
+      run: |
+        composer install --no-progress --prefer-dist
  
-      - name: Run Tests with Coverage
-        run: |
-          vendor/bin/phpunit --log-junit junit.xml --coverage-html coverage
+    # Step 4: Run tests + generate reports
+    - name: Run Tests with Coverage
+      run: |
+        vendor/bin/phpunit \
+          --log-junit junit.xml \
+          --coverage-html coverage
  
-      - name: Upload JUnit Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-report
-          path: junit.xml
+    # Step 5: Upload JUnit report
+    - name: Upload JUnit Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: junit-report
+        path: junit.xml
  
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage
+    # Step 6: Upload HTML Coverage Report (IMPORTANT)
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage
