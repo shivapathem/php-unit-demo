@@ -1,5 +1,7 @@
 name: PHP CI Pipeline
  
+run-name: Run for ${{ github.ref_name }}
+ 
 on:
   push:
     branches: [ "dev", "qa" ]
@@ -30,9 +32,6 @@ jobs:
         run: |
           vendor/bin/phpunit --log-junit junit.xml --coverage-html coverage
  
-      - name: Check Files
-        run: ls -la
- 
       - name: Upload JUnit Report
         uses: actions/upload-artifact@v4
         with:
@@ -44,3 +43,4 @@ jobs:
         with:
           name: coverage-report-${{ github.ref_name }}
           path: coverage
+ 
