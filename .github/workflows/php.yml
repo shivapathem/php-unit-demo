@@ -1,4 +1,4 @@
-name: PHP CI - ${{ github.ref_name }}
+name: PHP CI Pipeline
  
 on:
   push:
