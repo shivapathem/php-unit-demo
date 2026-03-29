@@ -1,10 +1,10 @@
-name: PHP CI Pipeline with Coverage Report
+name: PHP CI - ${{ github.ref_name }}
  
 on:
   push:
-    branches: [ "dev" ]
+    branches: [ "dev", "qa" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "qa" ]
  
 jobs:
   test:
@@ -15,36 +15,40 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
  
-    # Step 2: Setup PHP with Xdebug (REQUIRED for coverage)
+    # Step 2: Print branch name (for clarity)
+    - name: Print Branch
+      run: echo "Running on branch ${{ github.ref_name }}"
+ 
+    # Step 3: Setup PHP with coverage
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
         php-version: '8.1'
         coverage: xdebug
  
-    # Step 3: Install dependencies
+    # Step 4: Install dependencies
     - name: Install Dependencies
       run: composer install --no-progress --prefer-dist
  
-    # Step 4: Run tests + generate reports
+    # Step 5: Run tests + generate reports
     - name: Run Tests with Coverage
       run: |
         vendor/bin/phpunit --log-junit junit.xml --coverage-html coverage
  
-    # 🔍 Step 5: Debug (VERY IMPORTANT)
-    - name: Check generated files
+    # Step 6: Debug (see generated files)
+    - name: Check Files
       run: ls -la
  
-    # Step 6: Upload JUnit report
+    # Step 7: Upload JUnit Report (branch-specific)
     - name: Upload JUnit Report
       uses: actions/upload-artifact@v4
       with:
-        name: junit-report
+        name: junit-report-${{ github.ref_name }}
         path: junit.xml
  
-    # Step 7: Upload HTML Coverage Report
+    # Step 8: Upload Coverage Report (branch-specific)
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-report
+        name: coverage-report-${{ github.ref_name }}
         path: coverage
