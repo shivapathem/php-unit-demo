@@ -11,44 +11,36 @@ jobs:
     runs-on: ubuntu-latest
  
     steps:
-    # Step 1: Checkout code
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
  
-    # Step 2: Print branch name (for clarity)
-    - name: Print Branch
-      run: echo "Running on branch ${{ github.ref_name }}"
+      - name: Print Branch
+        run: echo "Running on branch ${{ github.ref_name }}"
  
-    # Step 3: Setup PHP with coverage
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.1'
-        coverage: xdebug
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: xdebug
  
-    # Step 4: Install dependencies
-    - name: Install Dependencies
-      run: composer install --no-progress --prefer-dist
+      - name: Install Dependencies
+        run: composer install --no-progress --prefer-dist
  
-    # Step 5: Run tests + generate reports
-    - name: Run Tests with Coverage
-      run: |
-        vendor/bin/phpunit --log-junit junit.xml --coverage-html coverage
+      - name: Run Tests with Coverage
+        run: |
+          vendor/bin/phpunit --log-junit junit.xml --coverage-html coverage
  
-    # Step 6: Debug (see generated files)
-    - name: Check Files
-      run: ls -la
+      - name: Check Files
+        run: ls -la
  
-    # Step 7: Upload JUnit Report (branch-specific)
-    - name: Upload JUnit Report
-      uses: actions/upload-artifact@v4
-      with:
-        name: junit-report-${{ github.ref_name }}
-        path: junit.xml
+      - name: Upload JUnit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report-${{ github.ref_name }}
+          path: junit.xml
  
-    # Step 8: Upload Coverage Report (branch-specific)
-    - name: Upload Coverage Report
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report-${{ github.ref_name }}
-        path: coverage
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.ref_name }}
+          path: coverage
