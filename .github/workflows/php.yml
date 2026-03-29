@@ -1,6 +1,6 @@
 name: PHP CI Pipeline
  
-run-name: Run for ${{ github.ref_name }}
+run-name: CI for ${{ github.ref_name }}
  
 on:
   push:
@@ -13,34 +13,58 @@ jobs:
     runs-on: ubuntu-latest
  
     steps:
+      # Step 1: Checkout code
       - name: Checkout Code
         uses: actions/checkout@v4
  
+      # Step 2: Show branch (for clarity)
       - name: Print Branch
         run: echo "Running on branch ${{ github.ref_name }}"
  
+      # Step 3: Setup PHP with Xdebug (coverage)
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
           coverage: xdebug
  
+      # Step 4: Install dependencies
       - name: Install Dependencies
         run: composer install --no-progress --prefer-dist
  
+      # Step 5: Run PHPUnit with coverage
       - name: Run Tests with Coverage
         run: |
-          vendor/bin/phpunit --log-junit junit.xml --coverage-html coverage
+          vendor/bin/phpunit \
+            --log-junit junit.xml \
+            --coverage-clover coverage.xml \
+            --coverage-html coverage
  
+      # Step 6: Upload JUnit report
       - name: Upload JUnit Report
         uses: actions/upload-artifact@v4
         with:
           name: junit-report-${{ github.ref_name }}
           path: junit.xml
  
+      # Step 7: Upload HTML Coverage Report
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ github.ref_name }}
           path: coverage
+ 
+      # Step 8: SonarQube Scan
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=php-demo
+            -Dsonar.sources=src
+            -Dsonar.tests=tests
+            -Dsonar.php.coverage.reportPaths=coverage.xml
+            -Dsonar.php.tests.reportPath=junit.xml
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
  
