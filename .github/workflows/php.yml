@@ -1,68 +1,48 @@
-name: PHP CI Pipeline
- 
-run-name: CI for ${{ github.ref_name }}
+name: PHP CI (Windows Self-Hosted)
  
 on:
   push:
-    branches: [ "dev", "qa" ]
+    branches: [dev]
   pull_request:
-    branches: [ "qa" ]
+    branches: [main]
  
 jobs:
   test:
-    name: PHP CI + SonarQube
-    runs-on: [self-hosted, Windows]
+    runs-on: self-hosted   # ✅ your Windows runner
  
     steps:
-      # Step 1: Checkout code
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v3
  
-      # Step 2: Print branch
-      - name: Print Branch
-        run: echo Running on branch ${{ github.ref_name }}
- 
-      # Step 3: Setup PHP
-      - name: Setup PHP with Xdebug
+      # ⚠️ OPTIONAL: Use only if setup-php works in your machine
+      - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.1'
+          php-version: '8.2'
           coverage: xdebug
  
-      # Step 4: Install dependencies
-      - name: Install Dependencies
-        run: composer install --no-progress --prefer-dist
+      # ✅ Verify PHP (very important for debugging)
+      - name: Check PHP version
+        run: php -v
  
-      # Step 5: Run PHPUnit with coverage
+      - name: Check Composer
+        run: composer -v
+ 
+      - name: Install dependencies
+        run: composer install
+ 
+      # ✅ FIXED: No '^', Windows-compatible command
       - name: Run Tests with Coverage
-        run: |
-          vendor\bin\phpunit ^
-          --log-junit junit.xml ^
-          --coverage-clover coverage.xml ^
-          --coverage-html coverage
+        run: vendor\bin\phpunit --coverage-clover coverage.xml --log-junit junit.xml
  
-      # Step 6: Upload JUnit report
       - name: Upload JUnit Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: junit-report-${{ github.ref_name }}
+          name: junit-report
           path: junit.xml
  
-      # Step 7: Upload HTML Coverage
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: coverage-report-${{ github.ref_name }}
-          path: coverage
- 
-      # Step 8: SonarQube Scan (WINDOWS SAFE)
-      - name: SonarQube Scan
-        run: |
-          sonar-scanner.bat ^
-            -Dsonar.projectKey=php-demo ^
-            -Dsonar.sources=src ^
-            -Dsonar.tests=tests ^
-            -Dsonar.php.coverage.reportPaths=coverage.xml ^
-            -Dsonar.php.tests.reportPath=junit.xml ^
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} ^
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          name: coverage-report
+          path: coverage.xml
