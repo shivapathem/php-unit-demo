@@ -1,48 +1,66 @@
-name: PHP CI (Windows Self-Hosted)
+name: PHP CI Pipeline
+ 
+run-name: CI for ${{ github.ref_name }}
  
 on:
   push:
-    branches: [dev]
+    branches: [ "dev", "qa" ]
   pull_request:
-    branches: [main]
+    branches: [ "qa" ]
  
 jobs:
   test:
-    runs-on: self-hosted   # ✅ your Windows runner
+    name: PHP CI + SonarQube
+    runs-on: [self-hosted, Windows]
  
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
  
-      # ⚠️ OPTIONAL: Use only if setup-php works in your machine
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          coverage: xdebug
+    # Step 1: Checkout
+    - name: Checkout Code
+      uses: actions/checkout@v4
  
-      # ✅ Verify PHP (very important for debugging)
-      - name: Check PHP version
-        run: php -v
+    # Step 2: Print branch
+    - name: Print Branch
+      run: echo Running on branch ${{ github.ref_name }}
  
-      - name: Check Composer
-        run: composer -v
+    # ⚠️ OPTIONAL - remove if still gives printf error
+    - name: Setup PHP with Xdebug
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        coverage: xdebug
  
-      - name: Install dependencies
-        run: composer install
+    # Step 3: Verify PHP
+    - name: Check PHP
+      run: php -v
  
-      # ✅ FIXED: No '^', Windows-compatible command
-      - name: Run Tests with Coverage
-        run: vendor\bin\phpunit --coverage-clover coverage.xml --log-junit junit.xml
+    - name: Check Composer
+      run: composer -v
  
-      - name: Upload JUnit Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: junit-report
-          path: junit.xml
+    # Step 4: Install dependencies
+    - name: Install Dependencies
+      run: composer install --no-progress --prefer-dist
  
-      - name: Upload Coverage Report
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage-report
-          path: coverage.xml
+    # ✅ FIXED (No '^', Windows safe)
+    - name: Run PHPUnit with Coverage
+      run: |
+        vendor\bin\phpunit --log-junit junit.xml --coverage-clover coverage.xml --coverage-html coverage
+ 
+    # Step 6: Upload JUnit report
+    - name: Upload JUnit Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: junit-report-${{ github.ref_name }}
+        path: junit.xml
+ 
+    # Step 7: Upload Coverage
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ github.ref_name }}
+        path: coverage
+ 
+    # ✅ FIXED SonarQube (no '^')
+    - name: SonarQube Scan
+      run: |
+        sonar-scanner.bat -Dsonar.projectKey=php-demo -Dsonar.sources=src -Dsonar.tests=tests -Dsonar.php.coverage.reportPaths=coverage.xml -Dsonar.php.tests.reportPath=junit.xml -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }}
