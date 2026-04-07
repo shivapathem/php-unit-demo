@@ -1,5 +1,7 @@
 
-name: PHP CI with SonarQube
+name: PHP CI Pipeline
+
+run-name: CI for ${{ github.ref_name }}
 
 ################################################################################
 # Triggers
@@ -7,111 +9,96 @@ name: PHP CI with SonarQube
 on:
   push:
     branches:
-      - main
-      - develop
+      - dev
+      - qa
   pull_request:
     branches:
-      - main
-      - develop
+      - qa
   workflow_dispatch:
-
-################################################################################
-# Permissions
-################################################################################
-permissions:
-  contents: read
-  pull-requests: read
-
-################################################################################
-# Concurrency
-################################################################################
-concurrency:
-  group: php-ci-${{ github.ref }}
-  cancel-in-progress: true
 
 ################################################################################
 # Jobs
 ################################################################################
 jobs:
-  php-ci:
-    name: PHP Build, Test & SonarQube
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+  test:
+    name: PHP CI + SonarQube
+    runs-on:
+      - self-hosted
+      - Windows
 
     steps:
       ##########################################################################
-      # Checkout
+      # Step 1: Checkout code
       ##########################################################################
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       ##########################################################################
-      # PHP Setup
+      # Step 2: Print branch
       ##########################################################################
-      - name: Setup PHP
+      - name: Print Branch
+        shell: cmd
+        run: echo Running on branch %GITHUB_REF_NAME%
+
+      ##########################################################################
+      # Step 3: Setup PHP with Xdebug
+      ##########################################################################
+      - name: Setup PHP with Xdebug
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          extensions: mbstring, intl, pdo, pdo_mysql
+          php-version: '8.1'
           coverage: xdebug
-          tools: composer
 
       ##########################################################################
-      # Verify Tools
+      # Step 4: Install dependencies
       ##########################################################################
-      - name: Verify PHP & Composer
-        run: |
-          php -v
-          composer --version
+      - name: Install Dependencies
+        shell: cmd
+        run: composer install --no-progress --prefer-dist --no-interaction
 
       ##########################################################################
-      # Cache dependencies
+      # Step 5: Run PHPUnit with coverage (Windows-safe)
       ##########################################################################
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
+      - name: Run Tests with Coverage
+        shell: cmd
+        run: >
+          vendor\bin\phpunit
+          --log-junit junit.xml
+          --coverage-clover coverage.xml
+          --coverage-html coverage
+
+      ##########################################################################
+      # Step 6: Upload JUnit report
+      ##########################################################################
+      - name: Upload JUnit Report
+        uses: actions/upload-artifact@v4
         with:
-          path: |
-            vendor
-            ~/.composer/cache
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-composer-
+          name: junit-report-${{ github.ref_name }}
+          path: junit.xml
 
       ##########################################################################
-      # Install dependencies
+      # Step 7: Upload HTML Coverage
       ##########################################################################
-      - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.ref_name }}
+          path: coverage
 
       ##########################################################################
-      # PHPUnit
-      ##########################################################################
-      - name: Run PHPUnit with coverage
-        run: |
-          if [ -f vendor/bin/phpunit ]; then
-            vendor/bin/phpunit --coverage-clover coverage.xml
-          else
-            echo "PHPUnit not configured, skipping"
-          fi
-
-      ##########################################################################
-      # SonarQube Scan ✅
+      # Step 8: SonarQube Scan (Windows SAFE)
       ##########################################################################
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
+        shell: cmd
+        run: >
+          sonar-scanner.bat
+          -Dsonar.projectKey=php-demo
+          -Dsonar.sources=src
+          -Dsonar.tests=tests
+          -Dsonar.php.coverage.reportPaths=coverage.xml
+          -Dsonar.php.tests.reportPath=junit.xml
+          -Dsonar.host.url=%SONAR_HOST_URL%
+          -Dsonar.login=%SONAR_TOKEN%
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.projectKey=php-project
-            -Dsonar.projectName=PHP Project
-            -Dsonar.sources=.
-            -Dsonar.exclusions=vendor/**
-            -Dsonar.php.coverage.reportPaths=coverage.xml
-
-      ##########################################################################
-      # Status
-      ##########################################################################
-      - name: Pipeline status
-        run: echo "✅ PHP CI + SonarQube analysis completed"
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
