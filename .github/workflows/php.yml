@@ -1,66 +1,75 @@
+
 name: PHP CI Pipeline
- 
+
 run-name: CI for ${{ github.ref_name }}
- 
+
 on:
   push:
     branches: [ "dev", "qa" ]
   pull_request:
     branches: [ "qa" ]
- 
+
 jobs:
   test:
     name: PHP CI + SonarQube
     runs-on: [self-hosted, Windows]
- 
+
     steps:
- 
+
     # Step 1: Checkout
     - name: Checkout Code
       uses: actions/checkout@v4
- 
+
     # Step 2: Print branch
     - name: Print Branch
       run: echo Running on branch ${{ github.ref_name }}
- 
-    # ⚠️ OPTIONAL - remove if still gives printf error
+
+    # ✅ FIX: Force Bash shell for setup-php (avoids printf/PowerShell issue)
     - name: Setup PHP with Xdebug
       uses: shivammathur/setup-php@v2
+      shell: bash
       with:
         php-version: '8.1'
         coverage: xdebug
- 
+
     # Step 3: Verify PHP
     - name: Check PHP
       run: php -v
- 
+
     - name: Check Composer
       run: composer -v
- 
+
     # Step 4: Install dependencies
     - name: Install Dependencies
       run: composer install --no-progress --prefer-dist
- 
-    # ✅ FIXED (No '^', Windows safe)
+
+    # Step 5: Run PHPUnit
     - name: Run PHPUnit with Coverage
       run: |
         vendor\bin\phpunit --log-junit junit.xml --coverage-clover coverage.xml --coverage-html coverage
- 
+
     # Step 6: Upload JUnit report
     - name: Upload JUnit Report
       uses: actions/upload-artifact@v4
       with:
         name: junit-report-${{ github.ref_name }}
         path: junit.xml
- 
+
     # Step 7: Upload Coverage
     - name: Upload Coverage Report
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report-${{ github.ref_name }}
         path: coverage
- 
-    # ✅ FIXED SonarQube (no '^')
+
+    # Step 8: SonarQube Scan
     - name: SonarQube Scan
       run: |
-        sonar-scanner.bat -Dsonar.projectKey=php-demo -Dsonar.sources=src -Dsonar.tests=tests -Dsonar.php.coverage.reportPaths=coverage.xml -Dsonar.php.tests.reportPath=junit.xml -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+        sonar-scanner.bat ^
+        -Dsonar.projectKey=php-demo ^
+        -Dsonar.sources=src ^
+        -Dsonar.tests=tests ^
+        -Dsonar.php.coverage.reportPaths=coverage.xml ^
+        -Dsonar.php.tests.reportPath=junit.xml ^
+        -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} ^
+        -Dsonar.login=${{ secrets.SONAR_TOKEN }}
