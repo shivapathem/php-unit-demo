@@ -3,9 +3,9 @@ name: PHP CI Pipeline
 
 run-name: CI for ${{ github.ref_name }}
 
-################################################################################
+###############################################################################
 # Triggers
-################################################################################
+###############################################################################
 on:
   push:
     branches:
@@ -16,9 +16,9 @@ on:
       - qa
   workflow_dispatch:
 
-################################################################################
+###############################################################################
 # Jobs
-################################################################################
+###############################################################################
 jobs:
   test:
     name: PHP CI + SonarQube
@@ -27,38 +27,39 @@ jobs:
       - Windows
 
     steps:
-      ##########################################################################
-      # Step 1: Checkout code
-      ##########################################################################
+      #########################################################################
+      # Step 1: Checkout source code
+      #########################################################################
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      ##########################################################################
-      # Step 2: Print branch
-      ##########################################################################
+      #########################################################################
+      # Step 2: Print branch name
+      #########################################################################
       - name: Print Branch
         shell: cmd
         run: echo Running on branch %GITHUB_REF_NAME%
 
-      ##########################################################################
+      #########################################################################
       # Step 3: Setup PHP with Xdebug
-      ##########################################################################
+      #########################################################################
       - name: Setup PHP with Xdebug
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
           coverage: xdebug
+          tools: composer
 
-      ##########################################################################
+      #########################################################################
       # Step 4: Install dependencies
-      ##########################################################################
+      #########################################################################
       - name: Install Dependencies
         shell: cmd
         run: composer install --no-progress --prefer-dist --no-interaction
 
-      ##########################################################################
+      #########################################################################
       # Step 5: Run PHPUnit with coverage (Windows-safe)
-      ##########################################################################
+      #########################################################################
       - name: Run Tests with Coverage
         shell: cmd
         run: >
@@ -67,38 +68,45 @@ jobs:
           --coverage-clover coverage.xml
           --coverage-html coverage
 
-      ##########################################################################
+      #########################################################################
       # Step 6: Upload JUnit report
-      ##########################################################################
+      #########################################################################
       - name: Upload JUnit Report
         uses: actions/upload-artifact@v4
         with:
           name: junit-report-${{ github.ref_name }}
           path: junit.xml
 
-      ##########################################################################
-      # Step 7: Upload HTML Coverage
-      ##########################################################################
+      #########################################################################
+      # Step 7: Upload HTML coverage
+      #########################################################################
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report-${{ github.ref_name }}
           path: coverage
 
-      ##########################################################################
-      # Step 8: SonarQube Scan (Windows SAFE)
-      ##########################################################################
+      #########################################################################
+      # Step 8: SonarQube Scan (FIXED – no local scanner required)
+      #########################################################################
       - name: SonarQube Scan
-        shell: cmd
-        run: >
-          sonar-scanner.bat
-          -Dsonar.projectKey=php-demo
-          -Dsonar.sources=src
-          -Dsonar.tests=tests
-          -Dsonar.php.coverage.reportPaths=coverage.xml
-          -Dsonar.php.tests.reportPath=junit.xml
-          -Dsonar.host.url=%SONAR_HOST_URL%
-          -Dsonar.login=%SONAR_TOKEN%
+        uses: SonarSource/sonarqube-scan-action@v2
         env:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=php-demo
+            -Dsonar.projectName=PHP Demo
+            -Dsonar.sources=src
+            -Dsonar.tests=tests
+            -Dsonar.exclusions=vendor/**
+            -Dsonar.php.coverage.reportPaths=coverage.xml
+            -Dsonar.php.tests.reportPath=junit.xml
+
+      #########################################################################
+      # Step 9: Completion message
+      #########################################################################
+      - name: Pipeline Completed
+        shell: cmd
+        run: echo ✅ PHP CI + SonarQube pipeline completed
