@@ -28,20 +28,20 @@ jobs:
 
     steps:
       #########################################################################
-      # Step 1: Checkout source code
+      # Step 1: Checkout
       #########################################################################
       - name: Checkout Code
         uses: actions/checkout@v4
 
       #########################################################################
-      # Step 2: Print branch name
+      # Step 2: Print branch
       #########################################################################
       - name: Print Branch
         shell: cmd
         run: echo Running on branch %GITHUB_REF_NAME%
 
       #########################################################################
-      # Step 3: Setup PHP with Xdebug
+      # Step 3: Setup PHP
       #########################################################################
       - name: Setup PHP with Xdebug
         uses: shivammathur/setup-php@v2
@@ -58,7 +58,7 @@ jobs:
         run: composer install --no-progress --prefer-dist --no-interaction
 
       #########################################################################
-      # Step 5: Run PHPUnit with coverage (Windows-safe)
+      # Step 5: Run PHPUnit
       #########################################################################
       - name: Run Tests with Coverage
         shell: cmd
@@ -69,7 +69,37 @@ jobs:
           --coverage-html coverage
 
       #########################################################################
-      # Step 6: Upload JUnit report
+      # Step 6: Download SonarScanner (WINDOWS SAFE)
+      #########################################################################
+      - name: Download SonarScanner
+        shell: powershell
+        run: |
+          $url = "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-windows.zip"
+          Invoke-WebRequest $url -OutFile sonar.zip
+          Expand-Archive sonar.zip sonar-scanner
+
+      #########################################################################
+      # Step 7: Run SonarQube Scan
+      #########################################################################
+      - name: SonarQube Scan
+        shell: cmd
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: >
+          sonar-scanner\sonar-scanner-5.0.1.3006-windows\bin\sonar-scanner.bat
+          -Dsonar.projectKey=php-demo
+          -Dsonar.projectName=PHP Demo
+          -Dsonar.sources=src
+          -Dsonar.tests=tests
+          -Dsonar.exclusions=vendor/**
+          -Dsonar.php.coverage.reportPaths=coverage.xml
+          -Dsonar.php.tests.reportPath=junit.xml
+          -Dsonar.host.url=%SONAR_HOST_URL%
+          -Dsonar.login=%SONAR_TOKEN%
+
+      #########################################################################
+      # Step 8: Upload reports
       #########################################################################
       - name: Upload JUnit Report
         uses: actions/upload-artifact@v4
@@ -77,9 +107,6 @@ jobs:
           name: junit-report-${{ github.ref_name }}
           path: junit.xml
 
-      #########################################################################
-      # Step 7: Upload HTML coverage
-      #########################################################################
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4
         with:
@@ -87,26 +114,9 @@ jobs:
           path: coverage
 
       #########################################################################
-      # Step 8: SonarQube Scan (FIXED – no local scanner required)
+      # Step 9: Done
       #########################################################################
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v2
-        env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=php-demo
-            -Dsonar.projectName=PHP Demo
-            -Dsonar.sources=src
-            -Dsonar.tests=tests
-            -Dsonar.exclusions=vendor/**
-            -Dsonar.php.coverage.reportPaths=coverage.xml
-            -Dsonar.php.tests.reportPath=junit.xml
-
-      #########################################################################
-      # Step 9: Completion message
-      #########################################################################
-      - name: Pipeline Completed
+      - name: Pipeline Done
         shell: cmd
-        run: echo ✅ PHP CI + SonarQube pipeline completed
+        run: echo ✅ PHP CI + SonarQube completed successfully
+``
