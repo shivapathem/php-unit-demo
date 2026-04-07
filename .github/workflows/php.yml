@@ -80,7 +80,7 @@ jobs:
         run: >
           sonar-scanner.bat
           -Dsonar.projectKey=php-demo
-          -Dsonar.projectName=PHP Demo
+          -Dsonar.projectName="PHP Demo"
           -Dsonar.sources=src
           -Dsonar.tests=tests
           -Dsonar.exclusions=vendor/**
