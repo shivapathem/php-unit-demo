@@ -25,7 +25,7 @@ jobs:
     runs-on:
       - self-hosted
       - Windows
-     timeout-minutes: 30
+    timeout-minutes: 30
 
     steps:
       ##########################################################################
@@ -46,7 +46,6 @@ jobs:
       ##########################################################################
       - name: Setup PHP with Xdebug
         uses: shivammathur/setup-php@v2
-        
         with:
           php-version: '8.1'
           coverage: xdebug
